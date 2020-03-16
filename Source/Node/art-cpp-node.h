@@ -10,14 +10,14 @@ namespace art
 		{
 		private:
 			Type value_ = NULL;
-			Node<Type>* forward_ = NULL;
-			Node<Type>* backward_ = NULL;
+			Node<Type>* next_ = NULL;
+			Node<Type>* prev_ = NULL;
 
 			void copy(const Node<Type>& node);
 			static void throw_exception();
 			
 		public:
-			Node();
+			Node() {};
 			Node(Type value);
 			Node(const Node<Type>& node);
 			~Node();
@@ -29,11 +29,11 @@ namespace art
 			Type get_value() const;
 			void set_value(const Type value);
 
-			Node<Type>* get_forward();
-			void set_forward(Node<Type>* node);
+			Node<Type>* get_next();
+			void set_next(Node<Type>* node);
 			
-			Node<Type>* get_backward();
-			void set_backward(Node<Type>* node);
+			Node<Type>* get_prev();
+			void set_prev(Node<Type>* node);
 
 			template<typename AnyType>
 			static bool is_nullable(AnyType value);
@@ -57,10 +57,6 @@ namespace art
 		}
 
 		template <typename Type>
-		Node<Type>::Node()
-		{}
-
-		template <typename Type>
 		Node<Type>::Node(Type value)
 		{
 			this->set_value(value);
@@ -74,15 +70,15 @@ namespace art
 
 		template <typename Type>
 		Node<Type>::~Node()
-		{
-			if(!Node::is_nullable(this->get_backward()))
+		{			
+			if(!Node::is_nullable(this->get_prev()))
 			{
-				this->get_backward()->set_forward(this->get_forward());
+				this->get_prev()->set_next(this->get_next());
 			}
 
-			if (!Node::is_nullable(this->get_forward()))
+			if (!Node::is_nullable(this->get_next()))
 			{
-				this->get_forward()->set_backward(this->get_backward());
+				this->get_next()->set_prev(this->get_prev());
 			}
 		}
 
@@ -96,21 +92,21 @@ namespace art
 		template <typename Type>
 		Node<Type>& Node<Type>::operator++()
 		{
-			if (Node::is_nullable(this->get_forward()))
+			if (Node::is_nullable(this->get_next()))
 			{
 				this->throw_exception();
 			}
-			return this->get_forward();
+			return this->get_next();
 		}
 
 		template <typename Type>
 		Node<Type>& Node<Type>::operator--()
 		{
-			if (Node::is_nullable(this->get_backward()))
+			if (Node::is_nullable(this->get_prev()))
 			{
 				this->throw_exception();
 			}
-			return this->get_backward();
+			return this->get_prev();
 		}
 
 		template <typename Type>
@@ -126,27 +122,27 @@ namespace art
 		}
 
 		template <typename Type>
-		Node<Type>* Node<Type>::get_forward()
+		Node<Type>* Node<Type>::get_next()
 		{
-			return this->forward_;
+			return this->next_;
 		}
 
 		template <typename Type>
-		void Node<Type>::set_forward(Node<Type>* node)
+		void Node<Type>::set_next(Node<Type>* node)
 		{
-			this->forward_ = node;
+			this->next_ = node;
 		}
 
 		template <typename Type>
-		Node<Type>* Node<Type>::get_backward()
+		Node<Type>* Node<Type>::get_prev()
 		{
-			return this->backward_;
+			return this->prev_;
 		}
 
 		template <typename Type>
-		void Node<Type>::set_backward(Node<Type>* node)
+		void Node<Type>::set_prev(Node<Type>* node)
 		{
-			this->backward_ = node;
+			this->prev_ = node;
 		}
 
 		template <typename Type>

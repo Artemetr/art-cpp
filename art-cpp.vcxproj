@@ -124,6 +124,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Source\art-cpp.h" />
+    <ClInclude Include="Source\List\art-cpp-list.h" />
     <ClInclude Include="Source\Node\art-cpp-node.h" />
     <ClInclude Include="Source\String\art-cpp-string.h" />
   </ItemGroup>

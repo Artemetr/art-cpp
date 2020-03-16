@@ -24,6 +24,9 @@
     <ClInclude Include="Source\Node\art-cpp-node.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="Source\List\art-cpp-list.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\art-cpp.cpp">
