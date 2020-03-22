@@ -13,160 +13,122 @@ namespace art
 			Node<Type>* next_ = NULL;
 			Node<Type>* prev_ = NULL;
 
-			void copy(const Node<Type>& node);
-			static void throw_exception();
+			void copy(const Node<Type>* node);
 			
 		public:
 			Node() {};
-			Node(Type value);
-			Node(const Node<Type>& node);
+			Node(const Type& value);
+			Node(const Node<Type>* node);
 			~Node();
 
-			Node<Type>& operator= (const Node<Type>& node);
-			Node<Type>& operator++ ();
-			Node<Type>& operator-- ();
-
 			Type get_value() const;
-			void set_value(const Type value);
+			void set_value(const Type& value);
 
-			Node<Type>* get_next();
+			Node<Type>* get_next() const;
 			void set_next(Node<Type>* node);
 			
-			Node<Type>* get_prev();
+			Node<Type>* get_prev() const;
 			void set_prev(Node<Type>* node);
 
 			template<typename AnyType>
-			static bool is_nullable(AnyType value);
+			static bool is_null(const AnyType& node);
 
 			template <typename AnyType>
-			friend std::ostream& operator<< (std::ostream& out, Node<AnyType>& node);
+			friend std::ostream& operator<<(std::ostream& out, const Node<AnyType>*& node);
+
 			template <typename AnyType>
-			friend std::istream& operator>> (std::istream& in, Node<AnyType>& node);
+			friend std::istream& operator>> (std::istream& in, Node<AnyType>*& node);
 		};
 
-		template <typename Type>
-		void Node<Type>::copy(const Node<Type>& node)
+		template <typename AnyType>
+		std::ostream& operator<<(std::ostream& out, const Node<AnyType>*& node)
 		{
-			this->set_value(node.get_value());
+			out << node->get_value();
+			return out;
+		}
+
+		template <typename AnyType>
+		std::istream& operator>>(std::istream& in, Node<AnyType>*& node)
+		{
+			AnyType value;
+			in >> value;
+			node->set_value(value);
+			
+			return in;
 		}
 
 		template <typename Type>
-		void Node<Type>::throw_exception()
+		void Node<Type>::copy(const Node<Type>* node)
 		{
-			throw "Error: going beyond!";
+			set_value(node->get_value());
 		}
 
 		template <typename Type>
-		Node<Type>::Node(Type value)
+		Node<Type>::Node(const Type& value)
 		{
-			this->set_value(value);
+			set_value(value);
 		}
 
 		template <typename Type>
-		Node<Type>::Node(const Node<Type>& node)
+		Node<Type>::Node(const Node<Type>* node)
 		{
-			this->copy(node);
+			copy(node);
 		}
 
 		template <typename Type>
 		Node<Type>::~Node()
-		{			
-			if(!Node::is_nullable(this->get_prev()))
-			{
-				this->get_prev()->set_next(this->get_next());
-			}
-
-			if (!Node::is_nullable(this->get_next()))
-			{
-				this->get_next()->set_prev(this->get_prev());
-			}
-		}
-
-		template <typename Type>
-		Node<Type>& Node<Type>::operator=(const Node<Type>& node)
 		{
-			this->copy(node);
-			return *this;
-		}
-
-		template <typename Type>
-		Node<Type>& Node<Type>::operator++()
-		{
-			if (Node::is_nullable(this->get_next()))
+			if(!is_null(get_next()))
 			{
-				this->throw_exception();
+				get_next()->set_prev(get_prev());
 			}
-			return this->get_next();
-		}
-
-		template <typename Type>
-		Node<Type>& Node<Type>::operator--()
-		{
-			if (Node::is_nullable(this->get_prev()))
+			if (!is_null(get_prev()))
 			{
-				this->throw_exception();
+				get_prev()->set_next(get_next());
 			}
-			return this->get_prev();
 		}
 
 		template <typename Type>
 		Type Node<Type>::get_value() const
 		{
-			return this->value_;
+			return value_;
 		}
 
 		template <typename Type>
-		void Node<Type>::set_value(const Type value)
+		void Node<Type>::set_value(const Type& value)
 		{
-			this->value_ = value;
+			value_ = value;
 		}
 
 		template <typename Type>
-		Node<Type>* Node<Type>::get_next()
+		Node<Type>* Node<Type>::get_next() const
 		{
-			return this->next_;
+			return next_;
 		}
 
 		template <typename Type>
 		void Node<Type>::set_next(Node<Type>* node)
 		{
-			this->next_ = node;
+			next_ = node;
 		}
 
 		template <typename Type>
-		Node<Type>* Node<Type>::get_prev()
+		Node<Type>* Node<Type>::get_prev() const
 		{
-			return this->prev_;
+			return prev_;
 		}
 
 		template <typename Type>
 		void Node<Type>::set_prev(Node<Type>* node)
 		{
-			this->prev_ = node;
+			prev_ = node;
 		}
 
 		template <typename Type>
 		template <typename AnyType>
-		bool Node<Type>::is_nullable(AnyType value)
+		bool Node<Type>::is_null(const AnyType& node)
 		{
-			return value == NULL;
-		}
-
-		template <typename AnyType>
-		std::ostream& operator<< (std::ostream& out, Node<AnyType>& node)
-		{
-			out << node.get_value();
-			return out;
-		}
-
-		template <typename AnyType>
-		std::istream& operator>> (std::istream& in, Node<AnyType>& node)
-		{
-			AnyType type;
-			in >> type;
-			node.set_value(type);
-			
-			return in;
+			return node == NULL;
 		}
 	}
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "../Node/art-cpp-node.h"
+#include "../Node/art-cpp-node-pointer.h"
 #include  <iostream>
 #include <string>
 
@@ -14,7 +15,7 @@ namespace art
 		private:
 			Node<Type>* start_ = NULL;
 			Node<Type>* end_ = NULL;
-			Node<Type>* current_ = NULL;
+			NodePointer<Type>* pointer_ = new NodePointer<Type>();
 			
 			std::size_t length_ = 0;
 
@@ -35,28 +36,37 @@ namespace art
 
 			static void throw_index_out_of_range();
 			static void throw_already_initialized();
+
+			void set_pointer(Node<Type>* node) const;
+			Node<Type>* get_pointer() const;
+			void next() const;
+			void prev() const;
+			void to_start() const;
+			void to_end() const;
+			
 		public:
 			List();
-			explicit List(const Type value);
+			List(const Type value);
 			List(const Type array[], const int length);
+			List(List<Type>*& list);
 			~List();
 
 			/*Adds its argument as a single element to the end of a list.
 			 *The length of the list increases by one.*/
 			void append(const Type value);
 			void append(const Type array[], const int length);
-			void append(const List<Type>& node);
+			void append(const List<Type>*& node);
 
 			/*Inserts the element at the given index, shifting elements to the right*/
 			void insert(const Type value, const int index);
 			void insert(const Type array[], const int length, const int index);
-			void insert(const List<Type>& node, const int index);
+			void insert(const List<Type>*& node, const int index);
 
 			/*Iterates over its argument and adding each element to the list and extending the list.
 			 *The length of the list increases by number of elements in it’s argument.*/
 			void extend(const Type value);
 			void extend(const Type array[], const int length);
-			void extend(const List<Type>& node);
+			void extend(const List<Type>*& node);
 
 			/*Remove items by index.*/
 			void del(const int index);
@@ -75,23 +85,103 @@ namespace art
 
 			Type* to_array();
 			
-			//std::string to_string();
+			std::string to_string() const;
 
 			Type operator[](static int index);
 
 			template <class Function>
-			List<Type> map(Function function);
+			List<Type>* map(Function function);
 			template <class Function>
 			Type* map(Function function);
 
 			template <class Function>
-			List<Type> filter(Function function);
+			List<Type>* filter(Function function);
 			template <class Function>
 			Type* filter(Function function);
 
-			//template <typename AnyType>
-			//friend std::ostream& operator<< (std::ostream& out, const List<AnyType>& list);
+			template <typename AnyType>
+			friend std::ostream& operator<< (std::ostream& out, const List<AnyType>& list);
+
+			template<typename AnyType>
+			friend std::istream& operator>> (std::istream& in, List<AnyType>& list);
+
+			/*
+			template <typename AnyType>
+			friend std::string join(const std::string delimiter, const addons::List<AnyType>& subject);
+			*/
+
+			friend addons::List<std::string> split(const std::string delimiter, const std::string subject);
 		};
+
+		template <typename AnyType>
+		std::ostream& operator<<(std::ostream& out, const List<AnyType>& list)
+		{
+			out << list.to_string();
+
+			return out;
+		}
+
+		template <typename AnyType>
+		std::string join(const std::string delimiter, const addons::List<AnyType>& subject)
+		{
+			std::string result = "";
+
+			Node<AnyType>* node = subject.start_;
+
+			for (int i = 0; i < subject.length(); i++)
+			{
+				result.append(node->get_value());
+
+				if (i < subject.length() - 1)
+				{
+					result.append(delimiter);
+				}
+			}
+
+			return result;
+		}
+
+		template <typename AnyType>
+		std::istream& operator>>(std::istream& in, List<AnyType>& list)
+		{
+			AnyType* value = new AnyType();
+			list.to_start();
+			for(int i = 0; i < list.length(); i++)
+			{
+				in >> value;
+				list.get_pointer()->set_value(value);
+
+				if(i < list.length() - 1)
+				{
+					list.next();
+				}
+			}
+			
+			return in;
+		}
+
+		inline addons::List<std::string> split(const std::string delimiter, const std::string subject)
+		{
+			List<std::string> result;
+
+			std::string tmp_subject = subject;
+
+			const std::size_t delimiter_length = delimiter.length();
+			std::size_t d_position = tmp_subject.find(delimiter);
+			if (d_position == std::string::npos)
+			{
+				return result;
+			}
+
+			while (d_position != std::string::npos)
+			{
+				result.append(tmp_subject.substr(0, d_position));
+				tmp_subject.erase(0, d_position + delimiter_length);
+				d_position = tmp_subject.find(delimiter);
+			}
+
+			return result;
+		}
 
 		template <typename Type>
 		void List<Type>::initializate(const Type value)
@@ -99,11 +189,11 @@ namespace art
 			this->if_not_empty_execute(List::throw_already_initialized);
 
 			Node<Type>* node = new Node<Type>(value);
-			
+
 			this->start_ = node;
 			this->end_ = node;
-			this->current_ = node;
-			
+			set_pointer(node);
+
 			++this->length_;
 		}
 
@@ -112,19 +202,20 @@ namespace art
 		{
 			this->if_index_not_in_list(List::throw_index_out_of_range, index);
 
-			if(this->length()/2 > index)
+			if (this->length() / 2 > index)
 			{
-				this->current_ = this->start_;
-				for(int i = 0; i < index; i++)
+				pointer_->set_node(start_);
+				for (int i = 0; i < index; i++)
 				{
-					++this->current_;
+					next();
 				}
-			} else
+			}
+			else
 			{
-				this->current_ = this->end_;
-				for(int i = this->length() - 1; i > index; --i)
+				pointer_->set_node(end_);
+				for (int i = this->length() - 1; i > index; --i)
 				{
-					--this->current_;
+					prev();
 				}
 			}
 		}
@@ -133,7 +224,7 @@ namespace art
 		template <class Function>
 		void List<Type>::if_empty_execute(Function function)
 		{
-			if(this->is_empty())
+			if (this->is_empty())
 			{
 				function();
 			}
@@ -153,7 +244,7 @@ namespace art
 		template <class Function>
 		void List<Type>::if_index_not_in_list(Function function, const int index)
 		{
-			if(index < 0 || index >= this->length())
+			if (index < 0 || index >= this->length())
 			{
 				function();
 			}
@@ -164,7 +255,7 @@ namespace art
 		{
 			this->if_empty_execute(List::throw_index_out_of_range);
 
-			if(this->length() == 1)
+			if (this->length() == 1)
 			{
 				this->clear();
 				return;
@@ -208,9 +299,44 @@ namespace art
 		}
 
 		template <typename Type>
+		void List<Type>::set_pointer(Node<Type>* node) const
+		{
+			pointer_->set_node(node);
+		}
+
+		template <typename Type>
+		Node<Type>* List<Type>::get_pointer() const
+		{
+			return pointer_->get_node();
+		}
+
+		template <typename Type>
+		void List<Type>::next() const
+		{
+			++(*pointer_);
+		}
+
+		template <typename Type>
+		void List<Type>::prev() const
+		{
+			--(*pointer_);
+		}
+
+		template <typename Type>
+		void List<Type>::to_start() const
+		{
+			pointer_->set_node(start_);
+		}
+
+		template <typename Type>
+		void List<Type>::to_end() const
+		{
+			pointer_->set_node(end_);
+		}
+
+		template <typename Type>
 		List<Type>::List()
 		{
-			
 		}
 
 		template <typename Type>
@@ -223,6 +349,12 @@ namespace art
 		List<Type>::List(const Type array[], const int length)
 		{
 			this->append(array, length);
+		}
+
+		template <typename Type>
+		List<Type>::List(List<Type>*& list)
+		{
+			append(list);
 		}
 
 		template <typename Type>
@@ -241,12 +373,12 @@ namespace art
 				break;
 			default:
 				Node<Type>* node = new Node<Type>(value);
-				
+
 				node->set_prev(this->end_);
 				this->end_->set_next(node);
 
 				this->end_ = node;
-				this->current_ = node;
+				set_pointer(node);
 
 				++this->length_;
 				break;
@@ -256,14 +388,14 @@ namespace art
 		template <typename Type>
 		void List<Type>::append(const Type array[], const int length)
 		{
-			for(int i = 0; i < length; i++)
+			for (int i = 0; i < length; i++)
 			{
 				this->append(array[i]);
 			}
 		}
 
 		template <typename Type>
-		void List<Type>::append(const List<Type>& node)
+		void List<Type>::append(const List<Type>*& node)
 		{
 			for (int i = 0; i < node.length(); i++)
 			{
@@ -287,10 +419,10 @@ namespace art
 				this->go_to_node(index);
 
 				Node<Type>* node = new Node<Type>(value);
-				
-				node->set_next(this->current_);
-				node->set_prev(this->current_->get_prev());
-				this->current_->set_prev(node);
+
+				node->set_next(get_pointer());
+				node->set_prev(get_pointer()->get_prev());
+				get_pointer()->set_prev(node);
 
 				++this->length_;
 				break;
@@ -307,7 +439,7 @@ namespace art
 		}
 
 		template <typename Type>
-		void List<Type>::insert(const List<Type>& node, const int index)
+		void List<Type>::insert(const List<Type>*& node, const int index)
 		{
 			for (int i = length - 1; i >= 0; i--)
 			{
@@ -330,8 +462,8 @@ namespace art
 				this->start_->set_prev(node);
 
 				this->start_ = node;
-				this->current_ = node;
-				
+				set_pointer(node);
+
 				++this->length_;
 				break;
 			}
@@ -347,7 +479,7 @@ namespace art
 		}
 
 		template <typename Type>
-		void List<Type>::extend(const List<Type>& node)
+		void List<Type>::extend(const List<Type>*& node)
 		{
 			for (int i = length - 1; i >= 0; i--)
 			{
@@ -359,7 +491,7 @@ namespace art
 		void List<Type>::del(const int index)
 		{
 			this->if_index_not_in_list(List::throw_index_out_of_range, index);
-			
+
 			switch (index)
 			{
 			case 0:
@@ -370,8 +502,8 @@ namespace art
 				break;
 			default:
 				this->go_to_node(index);
-				delete this->current_;
-				this->current_ = this->start_;
+				delete get_pointer();
+				pointer_->set_node(start_);
 				--this->length_;
 				break;
 			}
@@ -380,15 +512,15 @@ namespace art
 		template <typename Type>
 		void List<Type>::remove(const Type value)
 		{
-			if(this->is_empty())
+			if (this->is_empty())
 			{
 				return;
 			}
 
-			this->current_ = this->start_;
+			pointer_->set_node(start_);
 			for (int i = 0; i < this->length(); i++)
 			{
-				if(this->current_->get_value() == value)
+				if (get_pointer()->get_value() == value)
 				{
 					this->del(i);
 					break;
@@ -396,7 +528,7 @@ namespace art
 
 				if (i != this->length() - 1)
 				{
-					++this->current_;
+					next();
 				}
 			}
 		}
@@ -407,24 +539,25 @@ namespace art
 			this->if_index_not_in_list(List::throw_index_out_of_range, index);
 			Type value = this[index];
 			this->del(index);
-			
+
 			return value;
 		}
 
 		template <typename Type>
 		void List<Type>::clear()
 		{
-			while(this->length() > 1)
+			while (this->length() > 1)
 			{
 				this->del_start();
 			}
 
 			/*This place is memory stiller location.*/
-			delete this->current_;
-			
+			delete get_pointer();
+
 			this->start_ = NULL;
 			this->end_ = NULL;
-			this->current_ = NULL;
+			set_pointer(NULL);
+			
 			this->length_ = 0;
 		}
 
@@ -447,17 +580,17 @@ namespace art
 			{
 				return new Type[0];
 			}
-			
+
 			Type* array = new Type[this->length()];
-			
-			this->current_ = this->start_;
-			for(int i = 0; i < this->length(); i++)
+
+			pointer_->set_node(start_);
+			for (int i = 0; i < this->length(); i++)
 			{
-				array[i] = this->current_->get_value();
-				
-				if(i != this->length() - 1)
+				array[i] = get_pointer()->get_value();
+
+				if (i != this->length() - 1)
 				{
-					++this->current_;
+					next();
 				}
 			}
 
@@ -465,35 +598,56 @@ namespace art
 		}
 
 		template <typename Type>
+		std::string List<Type>::to_string() const
+		{
+			std::string result;
+			result.append("[");
+
+			to_start();
+			for (int i = 0; i < this->length(); i++)
+			{
+				result.append(std::to_string(get_pointer()->get_value()));
+				if (i < this->length() - 1)
+				{
+					next();
+					result.append(", ");
+				}
+			}
+			result.append("]");
+
+			return result;
+		}
+
+		template <typename Type>
 		Type List<Type>::operator[](int index)
 		{
 			this->go_to_node(index);
 
-			return this->current_->get_value();
+			return get_pointer()->get_value();
 		}
 
 		template <typename Type>
 		template <class Function>
-		List<Type> List<Type>::map(Function function)
+		List<Type>* List<Type>::map(Function function)
 		{
-			if(this->is_empty())
+			if (this->is_empty())
 			{
 				return List<Type>();
 			}
 
 			List<Type> list = new List<Type>();
 
-			this->current_ = this->start_;
+			pointer_->set_node(start_);
 			for (int i = 0; i < this->length(); i++)
 			{
-				list.append(function(this->current_->get_value()));
+				list.append(function(get_pointer()->get_value()));
 
 				if (i != this->length() - 1)
 				{
-					++this->current_;
+					next();
 				}
 			}
-			
+
 			return list;
 		}
 
@@ -508,14 +662,14 @@ namespace art
 
 			Type* array = new Type[this->length()];
 
-			this->current_ = this->start_;
+			pointer_->set_node(start_);
 			for (int i = 0; i < this->length(); i++)
 			{
-				array[i] = function(this->current_->get_value());
+				array[i] = function(get_pointer()->get_value());
 
 				if (i != this->length() - 1)
 				{
-					++this->current_;
+					next();
 				}
 			}
 
@@ -524,8 +678,9 @@ namespace art
 
 		template <typename Type>
 		template <class Function>
-		List<Type> List<Type>::filter(Function function)
+		List<Type>* List<Type>::filter(Function function)
 		{
+
 			if (this->is_empty())
 			{
 				return List<Type>();
@@ -533,17 +688,17 @@ namespace art
 
 			List<Type> list = new List<Type>();
 
-			this->current_ = this->start_;
+			pointer_->set_node(start_);
 			for (int i = 0; i < this->length(); i++)
 			{
-				if (function(this->current_->get_value()))
+				if (function(get_pointer()->get_value()))
 				{
-					list.append(this->current_->get_value());
+					list.append(get_pointer()->get_value());
 				}
 
 				if (i != this->length() - 1)
 				{
-					++this->current_;
+					next();
 				}
 			}
 
@@ -565,33 +720,34 @@ namespace art
 		}
 
 		template <typename Type>
-		Type* to_array(List<Type>& list)
+		Type* to_array(List<Type> & list)
 		{
 			return list.to_array();
 		}
 
 		template <typename Type, class Function>
-		List<Type> map(Function function, List<Type>& list)
+		List<Type> map(Function function, List<Type> & list)
 		{
 			return list.map(function);
 		}
 
 		template <typename Type, class Function>
-		Type* map(Function function, List<Type>& list)
+		Type* map(Function function, List<Type> & list)
 		{
 			return list.map(function);
 		}
 
 		template <typename Type, class Function>
-		List<Type> filter(Function function, List<Type>& list)
+		List<Type> filter(Function function, List<Type> & list)
 		{
 			return list.filter(function);
 		}
 
 		template <typename Type, class Function>
-		Type* filter(Function function, List<Type>& list)
+		Type* filter(Function function, List<Type> & list)
 		{
 			return list.filter(function);
 		}
+
 	}
 }
